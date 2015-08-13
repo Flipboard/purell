@@ -31,6 +31,27 @@ var (
 			false,
 		},
 		&testCase{
+			"StandardScheme",
+			"feed://www.SRC.ca",
+			FlagStandardizeScheme,
+			"http://www.SRC.ca",
+			false,
+		},
+		&testCase{
+			"StandardScheme2",
+			"ttp://www.SRC.ca",
+			FlagStandardizeScheme,
+			"http://www.SRC.ca",
+			false,
+		},
+		&testCase{
+			"StandardScheme3",
+			"itms://www.SRC.ca",
+			FlagStandardizeScheme,
+			"https://www.SRC.ca",
+			false,
+		},
+		&testCase{
 			"LowerHost",
 			"HTTP://www.SRC.ca/",
 			FlagLowercaseHost,

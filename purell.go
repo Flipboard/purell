@@ -23,6 +23,7 @@ type NormalizationFlags uint
 const (
 	// Safe normalizations
 	FlagLowercaseScheme           NormalizationFlags = 1 << iota // HTTP://host -> http://host, applied by default in Go1.1
+	FlagStandardizeScheme                                        // feed: -> http:
 	FlagLowercaseHost                                            // http://HOST -> http://host
 	FlagUppercaseEscapes                                         // http://host/t%ef -> http://host/t%EF
 	FlagDecodeUnnecessaryEscapes                                 // http://host/t%41 -> http://host/tA
@@ -86,6 +87,14 @@ var rxHexHost = regexp.MustCompile(`^0x([0-9A-Fa-f]+)((?:\.+)?(?:\:\d*)?)$`)
 var rxHostDots = regexp.MustCompile(`^(.+?)(:\d+)?$`)
 var rxEmptyPort = regexp.MustCompile(`:+$`)
 
+var schemeTranslations = map[string]string{
+	"feed": "http",
+	"itms": "https",
+	"ttp":  "http",
+	"tp":   "http",
+	"p":    "http",
+}
+
 // Map of flags to implementation function.
 // FlagDecodeUnnecessaryEscapes has no action, since it is done automatically
 // by parsing the string as an URL. Same for FlagUppercaseEscapes and FlagRemoveEmptyQuerySeparator.
@@ -93,6 +102,7 @@ var rxEmptyPort = regexp.MustCompile(`:+$`)
 // Since maps have undefined traversing order, make a slice of ordered keys
 var flagsOrder = []NormalizationFlags{
 	FlagLowercaseScheme,
+	FlagStandardizeScheme,
 	FlagLowercaseHost,
 	FlagRemoveDefaultPort,
 	FlagRemoveDirectoryIndex,
@@ -115,6 +125,7 @@ var flagsOrder = []NormalizationFlags{
 // ... and then the map, where order is unimportant
 var flags = map[NormalizationFlags]func(*url.URL){
 	FlagLowercaseScheme:           lowercaseScheme,
+	FlagStandardizeScheme:         standardizeScheme,
 	FlagLowercaseHost:             lowercaseHost,
 	FlagRemoveDefaultPort:         removeDefaultPort,
 	FlagRemoveDirectoryIndex:      removeDirectoryIndex,
@@ -170,6 +181,14 @@ func NormalizeURL(u *url.URL, f NormalizationFlags) string {
 func lowercaseScheme(u *url.URL) {
 	if len(u.Scheme) > 0 {
 		u.Scheme = strings.ToLower(u.Scheme)
+	}
+}
+
+func standardizeScheme(u *url.URL) {
+	for k, v := range schemeTranslations {
+		if u.Scheme == k {
+			u.Scheme = v
+		}
 	}
 }
 
