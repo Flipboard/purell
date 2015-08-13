@@ -150,6 +150,20 @@ var (
 			false,
 		},
 		&testCase{
+			"AddRootSlash",
+			"http://www.SRC.ca",
+			FlagAddRootSlash,
+			"http://www.SRC.ca/",
+			false,
+		},
+		&testCase{
+			"AddRootSlash2",
+			"http://www.SRC.ca/",
+			FlagAddRootSlash,
+			"http://www.SRC.ca/",
+			false,
+		},
+		&testCase{
 			"RemoveDotSegments",
 			"HTTP://root/a/b/./../../c/",
 			FlagRemoveDotSegments,

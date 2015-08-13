@@ -34,6 +34,7 @@ const (
 	// Usually safe normalizations
 	FlagRemoveTrailingSlash // http://host/path/ -> http://host/path
 	FlagAddTrailingSlash    // http://host/path -> http://host/path/ (should choose only one of these add/remove trailing slash flags)
+	FlagAddRootSlash        // http://host -> http://host/
 	FlagRemoveDotSegments   // http://host/path/./a/b/../c -> http://host/path/a/c
 
 	// Unsafe normalizations
@@ -118,6 +119,7 @@ var flagsOrder = []NormalizationFlags{
 	FlagDecodeHexHost,
 	FlagRemoveUnnecessaryHostDots,
 	FlagRemoveEmptyPortSeparator,
+	FlagAddRootSlash,
 	FlagRemoveTrailingSlash, // These two (add/remove trailing slash) must be last
 	FlagAddTrailingSlash,
 }
@@ -141,6 +143,7 @@ var flags = map[NormalizationFlags]func(*url.URL){
 	FlagDecodeHexHost:             decodeHexHost,
 	FlagRemoveUnnecessaryHostDots: removeUnncessaryHostDots,
 	FlagRemoveEmptyPortSeparator:  removeEmptyPortSeparator,
+	FlagAddRootSlash:              addRootSlash,
 	FlagRemoveTrailingSlash:       removeTrailingSlash,
 	FlagAddTrailingSlash:          addTrailingSlash,
 }
@@ -231,6 +234,12 @@ func addTrailingSlash(u *url.URL) {
 		if !strings.HasSuffix(u.Host, "/") {
 			u.Host += "/"
 		}
+	}
+}
+
+func addRootSlash(u *url.URL) {
+	if u.Path == "" {
+		u.Path = "/"
 	}
 }
 
