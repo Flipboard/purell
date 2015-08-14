@@ -96,6 +96,9 @@ var schemeTranslations = map[string]string{
 	"p":    "http",
 }
 
+// constant to indicate that a query parameter did not specify a value (as opposed to an empty string)
+const noQueryValue = "___NO_QUERY_VALUE___"
+
 // Map of flags to implementation function.
 // FlagDecodeUnnecessaryEscapes has no action, since it is done automatically
 // by parsing the string as an URL. Same for FlagUppercaseEscapes and FlagRemoveEmptyQuerySeparator.
@@ -306,7 +309,8 @@ func addWWW(u *url.URL) {
 }
 
 func sortQuery(u *url.URL) {
-	q := u.Query()
+	q := make(url.Values)
+	parseQuery(q, u.RawQuery)
 
 	if len(q) > 0 {
 		arKeys := make([]string, len(q))
@@ -323,13 +327,54 @@ func sortQuery(u *url.URL) {
 				if buf.Len() > 0 {
 					buf.WriteRune('&')
 				}
-				buf.WriteString(fmt.Sprintf("%s=%s", k, urlesc.QueryEscape(v)))
+				if v == noQueryValue {
+					buf.WriteString(k)
+				} else {
+					buf.WriteString(fmt.Sprintf("%s=%s", k, urlesc.QueryEscape(v)))
+				}
 			}
 		}
 
 		// Rebuild the raw query string
 		u.RawQuery = buf.String()
 	}
+}
+
+// adapted from golang std lib: https://golang.org/src/net/url/url.go#L546
+func parseQuery(m url.Values, query string) (err error) {
+	for query != "" {
+		key := query
+		if i := strings.IndexAny(key, "&;"); i >= 0 {
+			key, query = key[:i], key[i+1:]
+		} else {
+			query = ""
+		}
+		if key == "" {
+			continue
+		}
+		value := noQueryValue
+		if i := strings.Index(key, "="); i >= 0 {
+			key, value = key[:i], key[i+1:]
+		}
+		key, err1 := url.QueryUnescape(key)
+		if err1 != nil {
+			if err == nil {
+				err = err1
+			}
+			continue
+		}
+		if value != noQueryValue {
+			value, err1 = url.QueryUnescape(value)
+			if err1 != nil {
+				if err == nil {
+					err = err1
+				}
+				continue
+			}
+		}
+		m[key] = append(m[key], value)
+	}
+	return err
 }
 
 func decodeDWORDHost(u *url.URL) {

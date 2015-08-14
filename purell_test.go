@@ -255,6 +255,20 @@ var (
 			false,
 		},
 		&testCase{
+			"SortQuery2",
+			"http://root/toto/?x&b=4&a=1&c=3&b=2&a=5",
+			FlagSortQuery,
+			"http://root/toto/?a=1&a=5&b=2&b=4&c=3&x",
+			false,
+		},
+		&testCase{
+			"SortQuery3",
+			"http://root/toto/?x=&b=4&a=1&c=3&b=2&a=5",
+			FlagSortQuery,
+			"http://root/toto/?a=1&a=5&b=2&b=4&c=3&x=",
+			false,
+		},
+		&testCase{
 			"RemoveEmptyQuerySeparator",
 			"http://root/toto/?",
 			FlagRemoveEmptyQuerySeparator,
