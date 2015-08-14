@@ -514,6 +514,20 @@ var (
 			false,
 		},
 		&testCase{
+			"IDNA",
+			"http://www.müller.de/",
+			FlagsSafe | FlagEncodeIDNAHost,
+			"http://www.xn--mller-kva.de/",
+			false,
+		},
+		&testCase{
+			"IDNA-2",
+			"http://商業.tw/",
+			FlagsSafe | FlagEncodeIDNAHost,
+			"http://xn--czrw28b.tw/",
+			false,
+		},
+		&testCase{
 			"UnnecessaryHostDots-2",
 			"http://www.foo.com./foo/bar.html",
 			FlagsSafe | FlagRemoveUnnecessaryHostDots,

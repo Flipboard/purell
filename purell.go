@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/opennota/urlesc"
+	"golang.org/x/net/idna"
 )
 
 // A set of normalization flags determines how a URL will
@@ -51,6 +52,7 @@ const (
 	FlagDecodeDWORDHost           // http://1113982867 -> http://66.102.7.147
 	FlagDecodeOctalHost           // http://0102.0146.07.0223 -> http://66.102.7.147
 	FlagDecodeHexHost             // http://0x42660793 -> http://66.102.7.147
+	FlagEncodeIDNAHost            // http://www.müller.de -> http://www.xn--mller-kva.de
 	FlagRemoveUnnecessaryHostDots // http://.host../path -> http://host/path
 	FlagRemoveEmptyPortSeparator  // http://host:/path -> http://host/path
 
@@ -120,6 +122,7 @@ var flagsOrder = []NormalizationFlags{
 	FlagDecodeDWORDHost,
 	FlagDecodeOctalHost,
 	FlagDecodeHexHost,
+	FlagEncodeIDNAHost,
 	FlagRemoveUnnecessaryHostDots,
 	FlagRemoveEmptyPortSeparator,
 	FlagAddRootSlash,
@@ -144,6 +147,7 @@ var flags = map[NormalizationFlags]func(*url.URL){
 	FlagDecodeDWORDHost:           decodeDWORDHost,
 	FlagDecodeOctalHost:           decodeOctalHost,
 	FlagDecodeHexHost:             decodeHexHost,
+	FlagEncodeIDNAHost:            encodeIDNAHost,
 	FlagRemoveUnnecessaryHostDots: removeUnncessaryHostDots,
 	FlagRemoveEmptyPortSeparator:  removeEmptyPortSeparator,
 	FlagAddRootSlash:              addRootSlash,
@@ -414,6 +418,12 @@ func decodeHexHost(u *url.URL) {
 			// The rest is the same as decoding a DWORD host
 			decodeDWORDHost(u)
 		}
+	}
+}
+
+func encodeIDNAHost(u *url.URL) {
+	if h, err := idna.ToASCII(u.Host); err == nil {
+		u.Host = h
 	}
 }
 
