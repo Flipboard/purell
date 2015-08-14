@@ -47,6 +47,7 @@ const (
 	FlagRemoveWWW              // http://www.host/ -> http://host/
 	FlagAddWWW                 // http://host/ -> http://www.host/ (should choose only one of these add/remove WWW flags)
 	FlagSortQuery              // http://host/path?c=3&b=2&a=1&b=1 -> http://host/path?a=1&b=1&b=2&c=3
+	flagEditQuery              // always get a chance to edit QP
 
 	// Normalizations not in the wikipedia article, required to cover tests cases
 	// submitted by jehiah
@@ -119,7 +120,7 @@ var flagsOrder = []NormalizationFlags{
 	FlagRemoveDuplicateSlashes,
 	FlagRemoveWWW,
 	FlagAddWWW,
-	FlagSortQuery,
+	flagEditQuery,
 	FlagDecodeDWORDHost,
 	FlagDecodeOctalHost,
 	FlagDecodeHexHost,
@@ -144,7 +145,6 @@ var flags = map[NormalizationFlags]func(*url.URL){
 	FlagRemoveDuplicateSlashes:    removeDuplicateSlashes,
 	FlagRemoveWWW:                 removeWWW,
 	FlagAddWWW:                    addWWW,
-	FlagSortQuery:                 sortQuery,
 	FlagDecodeDWORDHost:           decodeDWORDHost,
 	FlagDecodeOctalHost:           decodeOctalHost,
 	FlagDecodeHexHost:             decodeHexHost,
@@ -162,7 +162,7 @@ func MustNormalizeURLString(u string, f NormalizationFlags) string {
 	if parsed, e := url.Parse(u); e != nil {
 		panic(e)
 	} else {
-		return NormalizeURL(parsed, f)
+		return NormalizeURL(parsed, f, nil)
 	}
 	panic("Unreachable code.")
 }
@@ -173,16 +173,22 @@ func NormalizeURLString(u string, f NormalizationFlags) (string, error) {
 	if parsed, e := url.Parse(u); e != nil {
 		return "", e
 	} else {
-		return NormalizeURL(parsed, f), nil
+		return NormalizeURL(parsed, f, nil), nil
 	}
 	panic("Unreachable code.")
 }
 
 // NormalizeURL returns the normalized string.
 // It takes a parsed URL object as input, as well as the normalization flags.
-func NormalizeURL(u *url.URL, f NormalizationFlags) string {
+func NormalizeURL(u *url.URL, f NormalizationFlags, vfn func(url.Values)) string {
 	for _, k := range flagsOrder {
-		if f&k == k {
+		if k == flagEditQuery {
+			// we only need to edit the QP if we are asked to via a flag or editing fn
+			shouldSort := f&FlagSortQuery == FlagSortQuery
+			if shouldSort || vfn != nil {
+				editQuery(u, shouldSort, vfn)
+			}
+		} else if f&k == k {
 			flags[k](u)
 		}
 	}
@@ -313,9 +319,14 @@ func addWWW(u *url.URL) {
 	}
 }
 
-func sortQuery(u *url.URL) {
+func editQuery(u *url.URL, shouldSort bool, vfn func(url.Values)) {
 	q := make(url.Values)
 	parseQuery(q, u.RawQuery)
+
+	if vfn != nil {
+		// possibly pre-process the values
+		vfn(q)
+	}
 
 	if len(q) > 0 {
 		arKeys := make([]string, len(q))
@@ -324,10 +335,14 @@ func sortQuery(u *url.URL) {
 			arKeys[i] = k
 			i++
 		}
-		sort.Strings(arKeys)
+		if shouldSort {
+			sort.Strings(arKeys)
+		}
 		buf := new(bytes.Buffer)
 		for _, k := range arKeys {
-			sort.Strings(q[k])
+			if shouldSort {
+				sort.Strings(q[k])
+			}
 			for _, v := range q[k] {
 				if buf.Len() > 0 {
 					buf.WriteRune('&')
@@ -342,6 +357,8 @@ func sortQuery(u *url.URL) {
 
 		// Rebuild the raw query string
 		u.RawQuery = buf.String()
+	} else {
+		u.RawQuery = ""
 	}
 }
 

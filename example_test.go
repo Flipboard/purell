@@ -27,7 +27,7 @@ func ExampleNormalizeURL() {
 	if u, err := url.Parse("Http://SomeUrl.com:8080/a/b/.././c///g?c=3&a=1&b=9&c=0#target"); err != nil {
 		panic(err)
 	} else {
-		normalized := NormalizeURL(u, FlagsUsuallySafeGreedy|FlagRemoveDuplicateSlashes|FlagRemoveFragment)
+		normalized := NormalizeURL(u, FlagsUsuallySafeGreedy|FlagRemoveDuplicateSlashes|FlagRemoveFragment, nil)
 		fmt.Print(normalized)
 	}
 

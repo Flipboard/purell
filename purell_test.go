@@ -789,7 +789,7 @@ func runCase(tc *testCase, t *testing.T) {
 			t.Errorf("%s - FAIL : %s", e)
 			return
 		} else {
-			NormalizeURL(u, tc.flgs)
+			NormalizeURL(u, tc.flgs, nil)
 			if s := u.String(); s != tc.res {
 				t.Errorf("%s - FAIL expected '%s', got '%s'", tc.nm, tc.res, s)
 			}
