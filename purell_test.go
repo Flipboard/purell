@@ -528,6 +528,13 @@ var (
 			false,
 		},
 		&testCase{
+			"IDNA-3",
+			"http://商業.tw:8080/",
+			FlagsSafe | FlagEncodeIDNAHost,
+			"http://xn--czrw28b.tw:8080/",
+			false,
+		},
+		&testCase{
 			"UnnecessaryHostDots-2",
 			"http://www.foo.com./foo/bar.html",
 			FlagsSafe | FlagRemoveUnnecessaryHostDots,

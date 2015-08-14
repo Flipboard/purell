@@ -7,6 +7,7 @@ package purell
 import (
 	"bytes"
 	"fmt"
+	"net"
 	"net/url"
 	"regexp"
 	"sort"
@@ -422,8 +423,21 @@ func decodeHexHost(u *url.URL) {
 }
 
 func encodeIDNAHost(u *url.URL) {
-	if h, err := idna.ToASCII(u.Host); err == nil {
-		u.Host = h
+	h := u.Host
+	p := ""
+	var err error
+	if strings.Index(h, ":") > 0 {
+		h, p, err = net.SplitHostPort(h)
+		if err != nil {
+			return
+		}
+	}
+	if h, err = idna.ToASCII(h); err == nil {
+		if len(p) > 0 {
+			u.Host = fmt.Sprintf("%s:%s", h, p)
+		} else {
+			u.Host = h
+		}
 	}
 }
 
