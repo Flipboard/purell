@@ -80,6 +80,7 @@ const (
 // A Customizer is given the opportunity to make changes to the normalization process. It is used when a simple flag on/off setting is not sufficient.
 type Customizer interface {
 	EditValues(url.Values)
+	AdjustFlags(NormalizationFlags) NormalizationFlags
 }
 
 const (
@@ -190,6 +191,10 @@ func NormalizeURL(u *url.URL, f NormalizationFlags) string {
 }
 
 func NormalizeURLWithCustomizer(u *url.URL, f NormalizationFlags, c Customizer) string {
+	if c != nil {
+		// give the Customizer a chance to adjust the flags
+		f = c.AdjustFlags(f)
+	}
 	for _, k := range flagsOrder {
 		if k == flagEditQuery {
 			// we only need to edit the QP if we are asked to via a flag or editing fn

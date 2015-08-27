@@ -837,8 +837,7 @@ func TestEncodeNecessaryEscapesAll(t *testing.T) {
 	}
 }
 
-type testCustomizer struct {
-}
+type testCustomizer struct{}
 
 func (c *testCustomizer) EditValues(m url.Values) {
 	for k := range m {
@@ -848,13 +847,17 @@ func (c *testCustomizer) EditValues(m url.Values) {
 	}
 }
 
+func (c *testCustomizer) AdjustFlags(flags NormalizationFlags) NormalizationFlags {
+	return flags &^ FlagRemoveWWW
+}
+
 func TestCustomizer(t *testing.T) {
 	parsed, e := url.Parse("http://www.example.com/path?c=3&a=1&b=2")
 	want := "http://www.example.com/path?a=1&c=3"
 	if e != nil {
 		t.Fatalf("Got error %s", e.Error())
 	}
-	s := NormalizeURLWithCustomizer(parsed, FlagsUsuallySafeGreedy, &testCustomizer{})
+	s := NormalizeURLWithCustomizer(parsed, FlagsUnsafeGreedy, &testCustomizer{})
 	if s != want {
 		t.Errorf("Customizer error:\nwant: %s\ngot: %s\n", want, s)
 	}
