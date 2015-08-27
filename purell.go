@@ -77,6 +77,11 @@ const (
 	FlagsAllNonGreedy = FlagsUnsafeNonGreedy | FlagDecodeDWORDHost | FlagDecodeOctalHost | FlagDecodeHexHost | FlagRemoveUnnecessaryHostDots | FlagRemoveEmptyPortSeparator
 )
 
+// A Customizer is given the opportunity to make changes to the normalization process. It is used when a simple flag on/off setting is not sufficient.
+type Customizer interface {
+	EditValues(url.Values)
+}
+
 const (
 	defaultHttpPort  = ":80"
 	defaultHttpsPort = ":443"
@@ -162,7 +167,7 @@ func MustNormalizeURLString(u string, f NormalizationFlags) string {
 	if parsed, e := url.Parse(u); e != nil {
 		panic(e)
 	} else {
-		return NormalizeURL(parsed, f, nil)
+		return NormalizeURL(parsed, f)
 	}
 	panic("Unreachable code.")
 }
@@ -173,20 +178,24 @@ func NormalizeURLString(u string, f NormalizationFlags) (string, error) {
 	if parsed, e := url.Parse(u); e != nil {
 		return "", e
 	} else {
-		return NormalizeURL(parsed, f, nil), nil
+		return NormalizeURL(parsed, f), nil
 	}
 	panic("Unreachable code.")
 }
 
 // NormalizeURL returns the normalized string.
 // It takes a parsed URL object as input, as well as the normalization flags.
-func NormalizeURL(u *url.URL, f NormalizationFlags, vfn func(url.Values)) string {
+func NormalizeURL(u *url.URL, f NormalizationFlags) string {
+	return NormalizeURLWithCustomizer(u, f, nil)
+}
+
+func NormalizeURLWithCustomizer(u *url.URL, f NormalizationFlags, c Customizer) string {
 	for _, k := range flagsOrder {
 		if k == flagEditQuery {
 			// we only need to edit the QP if we are asked to via a flag or editing fn
 			shouldSort := f&FlagSortQuery == FlagSortQuery
-			if shouldSort || vfn != nil {
-				editQuery(u, shouldSort, vfn)
+			if shouldSort || c != nil {
+				editQuery(u, shouldSort, c)
 			}
 		} else if f&k == k {
 			flags[k](u)
@@ -319,13 +328,13 @@ func addWWW(u *url.URL) {
 	}
 }
 
-func editQuery(u *url.URL, shouldSort bool, vfn func(url.Values)) {
+func editQuery(u *url.URL, shouldSort bool, c Customizer) {
 	q := make(url.Values)
 	parseQuery(q, u.RawQuery)
 
-	if vfn != nil {
+	if c != nil {
 		// possibly pre-process the values
-		vfn(q)
+		c.EditValues(q)
 	}
 
 	if len(q) > 0 {

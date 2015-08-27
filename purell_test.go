@@ -789,7 +789,7 @@ func runCase(tc *testCase, t *testing.T) {
 			t.Errorf("%s - FAIL : %s", e)
 			return
 		} else {
-			NormalizeURL(u, tc.flgs, nil)
+			NormalizeURL(u, tc.flgs)
 			if s := u.String(); s != tc.res {
 				t.Errorf("%s - FAIL expected '%s', got '%s'", tc.nm, tc.res, s)
 			}
@@ -834,5 +834,28 @@ func TestEncodeNecessaryEscapesAll(t *testing.T) {
 		if s != want {
 			t.Errorf("EncodeNecessaryEscapesAll:\nwant\n%s\ngot\n%s", want, s)
 		}
+	}
+}
+
+type testCustomizer struct {
+}
+
+func (c *testCustomizer) EditValues(m url.Values) {
+	for k := range m {
+		if k == "b" {
+			m.Del(k)
+		}
+	}
+}
+
+func TestCustomizer(t *testing.T) {
+	parsed, e := url.Parse("http://www.example.com/path?c=3&a=1&b=2")
+	want := "http://www.example.com/path?a=1&c=3"
+	if e != nil {
+		t.Fatalf("Got error %s", e.Error())
+	}
+	s := NormalizeURLWithCustomizer(parsed, FlagsUsuallySafeGreedy, &testCustomizer{})
+	if s != want {
+		t.Errorf("Customizer error:\nwant: %s\ngot: %s\n", want, s)
 	}
 }
